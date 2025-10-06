@@ -12,18 +12,25 @@ sudo apt install -y git wget unzip
 git clone https://github.com/AdguardTeam/AdGuardHome.git
 cd AdGuardHome
 
-# Step 3: Download Warpnet logo and replace the default logo
+# Step 3: Ensure the assets directory exists
+mkdir -p client/src/assets/
+
+# Step 4: Download Warpnet logo and replace the default logo
 wget -O client/src/assets/logowarpnet.svg https://warpnet.es/images/logowarpnet.svg
-mv client/src/assets/logo.svg client/src/assets/logo_adguard_original.svg
+
+if [ -f client/src/assets/logo.svg ]; then
+    mv client/src/assets/logo.svg client/src/assets/logo_adguard_original.svg
+fi
+
 cp client/src/assets/logowarpnet.svg client/src/assets/logo.svg
 
-# Step 4: Update logo references in source files
+# Step 5: Update logo references in source files
 find client/src/ -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/logo\.svg/logowarpnet.svg/g' {} \;
 
-# Step 5: (Manual) Copy CSS/theme files from warpnet.es repo
+# Step 6: (Manual) Copy CSS/theme files from warpnet.es repo
 echo "Please manually copy CSS/theme files from https://github.com/BrunoMiguelMota/es-warpnet to AdGuardHome/client/src/components/App/index.css and other relevant CSS files for full theme customization."
 
-# Step 6: (Optional) Build AdGuard Home UI (requires Node.js and npm)
+# Step 7: (Optional) Build AdGuard Home UI (requires Node.js and npm)
 # cd client
 # npm install
 # npm run build
