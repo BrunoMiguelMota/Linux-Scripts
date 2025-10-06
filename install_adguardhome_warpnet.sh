@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Warp NET DNS Installation Script for Ubuntu (fully compatible)
+# Warp NET DNS Installation Script for Ubuntu (AdGuard Home + Warpnet branding & theme)
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ error_exit() {
 }
 
 usage() {
-	echo 'Usage: install_warpnet_dns.sh [-c channel] [-C cpu_type] [-h] [-O os] [-o output_dir] [-v]' 1>&2
+	echo 'Usage: install_adguardhome_warpnet.sh [-c channel] [-C cpu_type] [-h] [-O os] [-o output_dir] [-v]' 1>&2
 	exit 2
 }
 
@@ -27,7 +27,7 @@ is_command() {
 }
 
 check_required() {
-	for cmd in tar wget curl sed; do
+	for cmd in tar wget curl sed git; do
 		log "Checking $cmd"
 		if ! is_command "$cmd"; then
 			error_exit "$cmd is required to install Warp NET DNS on Ubuntu."
@@ -112,7 +112,7 @@ unpack() {
 	fi
 }
 
-customize_warpnet_dns() {
+customize_logo_and_theme() {
 	local assets_dir="$agh_dir/client/src/assets"
 	mkdir -p "$assets_dir"
 	log "Downloading Warp NET logo..."
@@ -122,14 +122,27 @@ customize_warpnet_dns() {
 	fi
 	cp "$assets_dir/logowarpnet.svg" "$assets_dir/logo.svg"
 
-	# Change logo reference and name in source files
+	# Update logo reference and product name in UI source
 	if [[ -d "$agh_dir/client/src" ]]; then
 		find "$agh_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/logo\.svg/logowarpnet.svg/g' {} +
 		find "$agh_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/AdGuard Home/Warp NET DNS/g' {} +
-		log "Warp NET DNS customization complete!"
+		log "Warp NET DNS logo and name customized!"
 	else
 		log "Warning: UI source directory not found; skipping UI logo and branding changes."
 	fi
+
+	# Download and apply Warpnet theme CSS
+	local theme_repo="https://github.com/BrunoMiguelMota/es-warpnet"
+	local theme_tmp_dir="/tmp/warpnet_theme"
+	rm -rf "$theme_tmp_dir"
+	git clone --depth=1 "$theme_repo" "$theme_tmp_dir"
+	if [[ -f "$theme_tmp_dir/index.css" ]]; then
+		cp "$theme_tmp_dir/index.css" "$agh_dir/client/src/components/App/index.css"
+		log "Warp NET DNS theme applied!"
+	else
+		log "Warning: Couldn't find index.css in $theme_repo; skipping theme application."
+	fi
+	rm -rf "$theme_tmp_dir"
 }
 
 install_service() {
@@ -176,6 +189,6 @@ configure
 
 download
 unpack
-customize_warpnet_dns
+customize_logo_and_theme
 install_service
 show_success
