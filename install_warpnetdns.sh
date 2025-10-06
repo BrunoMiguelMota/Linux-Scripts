@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Warp NET DNS Installation Script for Ubuntu (All-in-one installer and theme)
+# Warp NET DNS Installation Script for Ubuntu (All-in-one installer and theme, Option 1)
 
 set -euo pipefail
 
