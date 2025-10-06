@@ -19,6 +19,17 @@ NET_IF=$(ip route | grep default | awk '{print $5}' | head -n1)
 if [ -z "$WG_IF" ]; then WG_IF="wg0"; fi
 if [ -z "$NET_IF" ]; then NET_IF="eth0"; fi
 
+echo "[*] Ensuring suricata user and group exist..."
+# Create suricata group if not exists
+if ! getent group suricata > /dev/null; then
+    sudo groupadd --system suricata
+fi
+
+# Create suricata user if not exists
+if ! id -u suricata > /dev/null 2>&1; then
+    sudo useradd --system --no-create-home -g suricata suricata
+fi
+
 echo "[*] Configuring Suricata to monitor $WG_IF and $NET_IF..."
 sudo mkdir -p /var/lib/suricata/file-store
 sudo chown -R suricata:suricata /var/lib/suricata/file-store
