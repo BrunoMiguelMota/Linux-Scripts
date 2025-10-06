@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Warp NET DNS Installation Script for Ubuntu
+# Warp NET DNS Installation Script for Ubuntu (All-in-one installer and theme)
 
 set -euo pipefail
 
@@ -113,39 +113,136 @@ unpack() {
 	fi
 }
 
-customize_logo_and_theme() {
+create_css_and_logo() {
 	local assets_dir="$warpnet_dir/client/src/assets"
 	mkdir -p "$assets_dir"
-	log "Downloading Warp NET logo..."
-	wget -nv -O "$assets_dir/logowarpnet.svg" "https://warpnet.es/images/logowarpnet.svg"
+
+	log "Creating Warp NET logo SVG..."
+	cat > "$assets_dir/logowarpnet.svg" <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48">
+  <rect width="220" height="48" rx="12" fill="#4183c4"/>
+  <text x="50%" y="50%" text-anchor="middle" dy=".35em" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="28" fill="#fff">
+    Warp NET DNS
+  </text>
+</svg>
+EOF
+
+	# Use our logo as the main logo
 	if [[ -f "$assets_dir/logo.svg" ]]; then
 		mv "$assets_dir/logo.svg" "$assets_dir/logo_original.svg"
 	fi
 	cp "$assets_dir/logowarpnet.svg" "$assets_dir/logo.svg"
 
-	# Update logo reference and product name in UI source
-	if [[ -d "$warpnet_dir/client/src" ]]; then
-		find "$warpnet_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/logo\.svg/logowarpnet.svg/g' {} +
-		find "$warpnet_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/WARPNETDNS/Warp NET DNS/g' {} +
-		find "$warpnet_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/WarpNetDNS/Warp NET DNS/g' {} +
-		find "$warpnet_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/warpnetdns/Warp NET DNS/g' {} +
-		log "Warp NET DNS logo and name customized!"
-	else
-		log "Warning: UI source directory not found; skipping UI logo and branding changes."
-	fi
+	# Create index.css theme file
+	local css_dir="$warpnet_dir/client/src/components/App"
+	mkdir -p "$css_dir"
+	cat > "$css_dir/index.css" <<'EOF'
+/* Warp NET DNS Theme - global styles */
+:root {
+  --warpnet-primary: #4183c4;
+  --warpnet-accent: #2e2e2e;
+  --warpnet-bg: #f4f7fa;
+  --warpnet-brand: #00aaff;
+  --warpnet-border: #e0e0e0;
+  --warpnet-text: #212121;
+  --warpnet-success: #44c767;
+  --warpnet-danger: #c74444;
+  --warpnet-warning: #ffa500;
+  --warpnet-font: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+body {
+  background: var(--warpnet-bg);
+  color: var(--warpnet-text);
+  font-family: var(--warpnet-font);
+  margin: 0;
+  padding: 0;
+}
+a {
+  color: var(--warpnet-brand);
+  text-decoration: none;
+}
+.header, .navbar, .sidebar {
+  background: var(--warpnet-primary);
+  color: #fff;
+}
+.header .logo img {
+  height: 48px;
+  vertical-align: middle;
+}
+.button, .btn {
+  background: var(--warpnet-brand);
+  color: #fff;
+  border-radius: 3px;
+  border: none;
+  padding: 8px 18px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.button:hover, .btn:hover {
+  background: var(--warpnet-accent);
+}
+.card, .panel, .box, .table {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(65, 131, 196, 0.04);
+  border: 1px solid var(--warpnet-border);
+  margin-bottom: 24px;
+}
+input, select, textarea {
+  border: 1px solid var(--warpnet-border);
+  border-radius: 4px;
+  padding: 8px;
+  outline: none;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  background: var(--warpnet-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--warpnet-primary);
+  border-radius: 10px;
+}
+EOF
 
-	# Download and apply Warpnet theme CSS
-	local theme_repo="https://github.com/BrunoMiguelMota/es-warpnet"
-	local theme_tmp_dir="/tmp/warpnet_theme"
-	rm -rf "$theme_tmp_dir"
-	git clone --depth=1 "$theme_repo" "$theme_tmp_dir"
-	if [[ -f "$theme_tmp_dir/index.css" ]]; then
-		cp "$theme_tmp_dir/index.css" "$warpnet_dir/client/src/components/App/index.css"
-		log "Warp NET DNS theme applied!"
+	# Additional theme components
+	cat > "$warpnet_dir/client/src/components/App/warpnet-theme.css" <<'EOF'
+/* Additional Warp NET DNS component theme overrides */
+.warpnet-banner {
+  background: linear-gradient(90deg, #4183c4 0%, #00aaff 100%);
+  color: #fff;
+  padding: 32px 0;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.warpnet-feature {
+  border-left: 4px solid var(--warpnet-brand);
+  padding: 16px 24px;
+  background: #f8fcff;
+  margin: 24px 0;
+}
+.logo {
+  height: 48px;
+  width: auto;
+}
+EOF
+}
+
+customize_branding() {
+	local ui_src="$warpnet_dir/client/src"
+	if [[ -d "$ui_src" ]]; then
+		find "$ui_src" -type f \( -name "*.js" -o -name "*.tsx" -o -name "*.ts" -o -name "*.jsx" \) -exec sed -i \
+			-e 's/AdGuard Home/Warp NET DNS/g' \
+			-e 's/adguard home/Warp NET DNS/g' \
+			-e 's/adguardhome/warpnetdns/g' \
+			-e 's/AdGuardHome/WarpNETDNS/g' \
+			-e 's/logo\.svg/logowarpnet.svg/g' \
+			{} +
+		log "Warp NET DNS branding applied to UI code."
 	else
-		log "Warning: Couldn't find index.css in $theme_repo; skipping theme application."
+		log "Warning: UI source directory not found; skipping UI branding changes."
 	fi
-	rm -rf "$theme_tmp_dir"
 }
 
 install_service() {
@@ -192,6 +289,7 @@ configure
 
 download
 unpack
-customize_logo_and_theme
+create_css_and_logo
+customize_branding
 install_service
 show_success
