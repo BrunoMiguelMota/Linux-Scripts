@@ -39,15 +39,12 @@ is_little_endian() {
 			| hexdump -o \
 			| awk '{ print substr($2, 6, 1); exit; }'
 	)"
-	readonly is_little_endian_result
-
 	[ "$is_little_endian_result" -eq '1' ]
 }
 
 check_required() {
 	required_darwin="unzip"
 	required_unix="tar"
-	readonly required_darwin required_unix
 
 	case "${os:-}" in
 	'freebsd' | 'linux' | 'openbsd')
@@ -60,7 +57,6 @@ check_required() {
 		error_exit "unsupported operating system: '${os:-}'"
 		;;
 	esac
-	readonly required
 
 	for cmd in $required; do
 		log "checking $cmd"
@@ -180,7 +176,6 @@ fix_freebsd() {
 		return 0
 	fi
 	rcd='/usr/local/etc/rc.d'
-	readonly rcd
 	if ! [ -d "$rcd" ]; then
 		mkdir "$rcd"
 	fi
@@ -211,7 +206,7 @@ download_fetch() {
 
 set_download_func() {
 	if is_command 'curl'; then
-		return 0
+		download_func='download_curl'
 	elif is_command 'wget'; then
 		download_func='download_wget'
 	elif is_command 'fetch'; then
@@ -224,7 +219,7 @@ set_download_func() {
 set_sudo_cmd() {
 	case "${os:-}" in
 	'openbsd') sudo_cmd='doas' ;;
-	'darwin' | 'freebsd' | 'linux') ;;
+	'darwin' | 'freebsd' | 'linux') sudo_cmd='sudo' ;;
 	*) error_exit "unsupported operating system: '$os'" ;;
 	esac
 }
@@ -238,11 +233,9 @@ configure() {
 	set_sudo_cmd
 	check_out_dir
 
-	pkg_name="WarpNETDNS_${os}_${cpu}.${pkg_ext:-tar.gz}"
-	url="https://static.adtidy.org/adguardhome/${channel:-release}/AdGuardHome_${os}_${cpu}.${pkg_ext:-tar.gz}"
+	pkg_name="AdGuardHome_${os}_${cpu}.${pkg_ext:-tar.gz}"
+	url="https://static.adtidy.org/adguardhome/${channel:-release}/${pkg_name}"
 	agh_dir="${out_dir:-/opt}/WarpNETDNS"
-	readonly pkg_name url agh_dir
-
 	log "Warp NET DNS will be installed into $agh_dir"
 }
 
@@ -262,24 +255,12 @@ please, restart it with root privileges'
 
 rerun_with_root() {
 	script_url='https://raw.githubusercontent.com/BrunoMiguelMota/es-warpnet/main/install_warpnet_dns.sh'
-	readonly script_url
-
 	r='-R'
-	if [ "${reinstall:-0}" -eq '1' ]; then
-		r='-r'
-	fi
-
+	if [ "${reinstall:-0}" -eq '1' ]; then r='-r'; fi
 	u='-U'
-	if [ "${uninstall:-0}" -eq '1' ]; then
-		u='-u'
-	fi
-
+	if [ "${uninstall:-0}" -eq '1' ]; then u='-u'; fi
 	v='-V'
-	if [ "${verbose:-0}" -eq '1' ]; then
-		v='-v'
-	fi
-
-	readonly r u v
+	if [ "${verbose:-0}" -eq '1' ]; then v='-v'; fi
 
 	log 'restarting with root privileges'
 	{ ${download_func:-download_curl} "$script_url" || echo 'exit 1'; } \
@@ -289,7 +270,7 @@ rerun_with_root() {
 
 download() {
 	log "downloading package from $url to $pkg_name"
-	if ! ${download_func:-download_curl} "$url" "$pkg_name"; then
+	if ! ${download_func} "$url" "$pkg_name"; then
 		error_exit "cannot download the package from $url into $pkg_name"
 	fi
 	log "successfully downloaded $pkg_name"
@@ -307,14 +288,16 @@ unpack() {
 	*) error_exit "unexpected package extension: '${pkg_ext:-tar.gz}'" ;;
 	esac
 
-	unpacked_contents="$(ls -l -A "$agh_dir")"
-	log "successfully unpacked, contents: $unpacked_contents"
-
 	rm "$pkg_name"
 
 	# Rename the main directory to WarpNETDNS if it's AdGuardHome
 	if [ -d "${out_dir:-/opt}/AdGuardHome" ]; then
 		mv "${out_dir:-/opt}/AdGuardHome" "$agh_dir"
+	fi
+
+	# Rename the AdGuardHome binary to WarpNETDNS
+	if [ -f "$agh_dir/AdGuardHome" ]; then
+		mv "$agh_dir/AdGuardHome" "$agh_dir/WarpNETDNS"
 	fi
 }
 
