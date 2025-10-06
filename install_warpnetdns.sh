@@ -4,8 +4,6 @@
 
 set -euo pipefail
 
-# --- Functions ---
-
 log() {
 	if [[ "${verbose:-0}" -gt 0 ]]; then
 		echo "$1" 1>&2
@@ -18,7 +16,7 @@ error_exit() {
 }
 
 usage() {
-	echo 'Usage: install_warpnetdns.sh [-c channel] [-C cpu_type] [-h] [-O os] [-o output_dir] [-v]' 1>&2
+	echo 'Usage: install_warpnetdns.sh [-o output_dir] [-v]' 1>&2
 	exit 2
 }
 
@@ -27,7 +25,7 @@ is_command() {
 }
 
 check_required() {
-	for cmd in tar wget curl sed git; do
+	for cmd in tar wget sed git; do
 		log "Checking $cmd"
 		if ! is_command "$cmd"; then
 			error_exit "$cmd is required to install Warp NET DNS on Ubuntu."
@@ -36,12 +34,8 @@ check_required() {
 }
 
 parse_opts() {
-	while getopts "C:c:hO:o:v" opt; do
+	while getopts "o:v" opt; do
 		case "$opt" in
-			C) cpu="$OPTARG" ;;
-			c) channel="$OPTARG" ;;
-			h) usage ;;
-			O) os="$OPTARG" ;;
 			o) out_dir="$OPTARG" ;;
 			v) verbose='1' ;;
 			*) log "Bad option $OPTARG"; usage ;;
@@ -49,47 +43,23 @@ parse_opts() {
 	done
 }
 
-set_channel() {
-	case "${channel:-release}" in
-		'development' | 'edge' | 'beta' | 'release') ;;
-		*) error_exit "Invalid channel '${channel:-release}'. Supported: development, edge, beta, release." ;;
-	esac
-	log "Channel: ${channel:-release}"
-}
-
-set_os() {
-	if [[ -z "${os:-}" ]]; then
-		os="linux"
-	fi
-	log "Operating system: $os"
-}
-
-set_cpu() {
-	if [[ -z "${cpu:-}" ]]; then
-		cpu="$(uname -m)"
-		case "$cpu" in
-			'x86_64' | 'amd64' ) cpu='amd64' ;;
-			'aarch64' | 'arm64') cpu='arm64' ;;
-			*) error_exit "Unsupported CPU type: $cpu" ;;
-		esac
-	fi
-	log "CPU type: $cpu"
-}
-
 configure() {
-	set_channel
-	set_os
-	set_cpu
+	os="linux"
+	cpu="$(uname -m)"
+	case "$cpu" in
+		'x86_64' | 'amd64' ) cpu='amd64' ;;
+		'aarch64' | 'arm64') cpu='arm64' ;;
+		*) error_exit "Unsupported CPU type: $cpu" ;;
+	esac
 
-	pkg_name="warpnetdns_${os}_${cpu}.tar.gz"
-	# For demonstration, use an actual binary source; for production, build your own.
-	binary_url="https://github.com/BrunoMiguelMota/warpnetdns/releases/latest/download/${pkg_name}"
+	pkg_name="AdGuardHome_${os}_${cpu}.tar.gz"
+	binary_url="https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/${pkg_name}"
 	warpnet_dir="${out_dir:-/opt}/WarpNETDNS"
 	log "Warp NET DNS will be installed into $warpnet_dir"
 }
 
 download() {
-	log "Downloading package from $binary_url to $pkg_name"
+	log "Downloading AdGuard Home package from $binary_url to $pkg_name"
 	wget -O "$pkg_name" "$binary_url"
 	log "Successfully downloaded $pkg_name"
 }
@@ -99,17 +69,16 @@ unpack() {
 	mkdir -p "${out_dir:-/opt}"
 
 	tar -C "${out_dir:-/opt}" -xf "$pkg_name"
-
 	rm "$pkg_name"
 
-	# Rename extracted directory if necessary
-	if [[ -d "${out_dir:-/opt}/warpnetdns" ]]; then
-		mv "${out_dir:-/opt}/warpnetdns" "$warpnet_dir"
+	# Rename extracted directory
+	if [[ -d "${out_dir:-/opt}/AdGuardHome" ]]; then
+		mv "${out_dir:-/opt}/AdGuardHome" "$warpnet_dir"
 	fi
 
-	# Ensure binary is named WarpNETDNS
-	if [[ -f "$warpnet_dir/warpnetdns" ]]; then
-		mv "$warpnet_dir/warpnetdns" "$warpnet_dir/WarpNETDNS"
+	# Rename binary
+	if [[ -f "$warpnet_dir/AdGuardHome" ]]; then
+		mv "$warpnet_dir/AdGuardHome" "$warpnet_dir/WarpNETDNS"
 	fi
 }
 
@@ -275,10 +244,7 @@ show_success() {
 
 # --- Main ---
 
-channel='release'
 verbose='0'
-cpu=''
-os=''
 out_dir='/opt'
 
 parse_opts "$@"
