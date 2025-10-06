@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Warp NET DNS Installation Script for Ubuntu (AdGuard Home + Warpnet branding & theme)
+# Warp NET DNS Installation Script for Ubuntu
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ error_exit() {
 }
 
 usage() {
-	echo 'Usage: install_adguardhome_warpnet.sh [-c channel] [-C cpu_type] [-h] [-O os] [-o output_dir] [-v]' 1>&2
+	echo 'Usage: install_warpnetdns.sh [-c channel] [-C cpu_type] [-h] [-O os] [-o output_dir] [-v]' 1>&2
 	exit 2
 }
 
@@ -81,15 +81,16 @@ configure() {
 	set_os
 	set_cpu
 
-	pkg_name="AdGuardHome_${os}_${cpu}.tar.gz"
-	url="https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/${pkg_name}"
-	agh_dir="${out_dir:-/opt}/WarpNETDNS"
-	log "Warp NET DNS will be installed into $agh_dir"
+	pkg_name="warpnetdns_${os}_${cpu}.tar.gz"
+	# For demonstration, use an actual binary source; for production, build your own.
+	binary_url="https://github.com/BrunoMiguelMota/warpnetdns/releases/latest/download/${pkg_name}"
+	warpnet_dir="${out_dir:-/opt}/WarpNETDNS"
+	log "Warp NET DNS will be installed into $warpnet_dir"
 }
 
 download() {
-	log "Downloading package from $url to $pkg_name"
-	wget -O "$pkg_name" "$url"
+	log "Downloading package from $binary_url to $pkg_name"
+	wget -O "$pkg_name" "$binary_url"
 	log "Successfully downloaded $pkg_name"
 }
 
@@ -102,18 +103,18 @@ unpack() {
 	rm "$pkg_name"
 
 	# Rename extracted directory if necessary
-	if [[ -d "${out_dir:-/opt}/AdGuardHome" ]]; then
-		mv "${out_dir:-/opt}/AdGuardHome" "$agh_dir"
+	if [[ -d "${out_dir:-/opt}/warpnetdns" ]]; then
+		mv "${out_dir:-/opt}/warpnetdns" "$warpnet_dir"
 	fi
 
-	# Rename binary
-	if [[ -f "$agh_dir/AdGuardHome" ]]; then
-		mv "$agh_dir/AdGuardHome" "$agh_dir/WarpNETDNS"
+	# Ensure binary is named WarpNETDNS
+	if [[ -f "$warpnet_dir/warpnetdns" ]]; then
+		mv "$warpnet_dir/warpnetdns" "$warpnet_dir/WarpNETDNS"
 	fi
 }
 
 customize_logo_and_theme() {
-	local assets_dir="$agh_dir/client/src/assets"
+	local assets_dir="$warpnet_dir/client/src/assets"
 	mkdir -p "$assets_dir"
 	log "Downloading Warp NET logo..."
 	wget -nv -O "$assets_dir/logowarpnet.svg" "https://warpnet.es/images/logowarpnet.svg"
@@ -123,9 +124,11 @@ customize_logo_and_theme() {
 	cp "$assets_dir/logowarpnet.svg" "$assets_dir/logo.svg"
 
 	# Update logo reference and product name in UI source
-	if [[ -d "$agh_dir/client/src" ]]; then
-		find "$agh_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/logo\.svg/logowarpnet.svg/g' {} +
-		find "$agh_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/AdGuard Home/Warp NET DNS/g' {} +
+	if [[ -d "$warpnet_dir/client/src" ]]; then
+		find "$warpnet_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/logo\.svg/logowarpnet.svg/g' {} +
+		find "$warpnet_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/WARPNETDNS/Warp NET DNS/g' {} +
+		find "$warpnet_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/WarpNetDNS/Warp NET DNS/g' {} +
+		find "$warpnet_dir/client/src/" -type f \( -name "*.js" -o -name "*.tsx" \) -exec sed -i 's/warpnetdns/Warp NET DNS/g' {} +
 		log "Warp NET DNS logo and name customized!"
 	else
 		log "Warning: UI source directory not found; skipping UI logo and branding changes."
@@ -137,7 +140,7 @@ customize_logo_and_theme() {
 	rm -rf "$theme_tmp_dir"
 	git clone --depth=1 "$theme_repo" "$theme_tmp_dir"
 	if [[ -f "$theme_tmp_dir/index.css" ]]; then
-		cp "$theme_tmp_dir/index.css" "$agh_dir/client/src/components/App/index.css"
+		cp "$theme_tmp_dir/index.css" "$warpnet_dir/client/src/components/App/index.css"
 		log "Warp NET DNS theme applied!"
 	else
 		log "Warning: Couldn't find index.css in $theme_repo; skipping theme application."
@@ -154,8 +157,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=$agh_dir/WarpNETDNS
-WorkingDirectory=$agh_dir
+ExecStart=$warpnet_dir/WarpNETDNS
+WorkingDirectory=$warpnet_dir
 Restart=on-failure
 
 [Install]
