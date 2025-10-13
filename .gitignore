@@ -1,0 +1,20 @@
+# Build artifacts
+warpnetdns-build/
+*.tar.gz
+*.zip
+
+# Temporary files
+/tmp/
+*.tmp
+*.bak
+*~
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
