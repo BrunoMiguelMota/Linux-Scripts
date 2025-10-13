@@ -96,6 +96,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
+          repository: BrunoMiguelMota/warpnetdns
           tag_name: v1.0.${{ github.run_number }}
           name: WarpNETDNS Release ${{ steps.date.outputs.date }}
           body: |
@@ -133,9 +134,16 @@ jobs:
 
       - name: Update latest tag
         run: |
+          # Clone the warpnetdns repository
+          git clone https://${GITHUB_TOKEN}@github.com/BrunoMiguelMota/warpnetdns.git warpnetdns-repo
+          cd warpnetdns-repo
+          
+          # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -f latest
+          
+          # Update latest tag
+          git tag -f latest v1.0.${{ github.run_number }}
           git push -f origin latest
         env:
           GITHUB_TOKEN: ${{ secrets.WARPNETDNS_RELEASE_TOKEN }}
